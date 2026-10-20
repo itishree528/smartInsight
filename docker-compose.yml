@@ -1,0 +1,72 @@
+services:
+  # PostgreSQL with pgvector extension enabled
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: smartinsight-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: smartinsight_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smartinsight_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for semantic query caching & telemetry tracking
+  redis:
+    image: redis:7-alpine
+    container_name: smartinsight-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend (Asynchronous REST + SSE Streaming + pgvector)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartinsight-backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgrespassword@db:5432/smartinsight_db
+      - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
+      - EMBEDDING_DIMENSION=1536
+      - MOCK_LLM_IF_NO_KEY=true
+      - TARGET_TTFT_MS=350
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Next.js Frontend Dashboard (Tailwind CSS, SSE Consumer, Citations)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartinsight-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  redisdata:
