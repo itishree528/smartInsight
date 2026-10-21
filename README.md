@@ -51,17 +51,17 @@ flowchart TD
     end
 
     UI --> UPLOAD & CHAT & ANALYTICS
-    UPLOAD -->|1. Upload PDF| API_UP
-    API_UP --> CHUNK --> EMBED -->|2. Store Vectors| PG
-    CHAT -->|3. Query Request| API_CHAT
-    API_CHAT -->|4. Check Cached Query| REDIS_CACHE
-    REDIS_CACHE -.->|Cache HIT (45ms)| STREAMER
-    REDIS_CACHE -->|Cache MISS| EMBED
-    EMBED -->|5. Cosine Distance Search <=>| PG
-    PG -->|6. Top-K Context Chunks| STREAMER
-    STREAMER -->|7. Stream Tokens (TTFT < 350ms)| CHAT
+    UPLOAD -->|"1. Upload PDF"| API_UP
+    API_UP --> CHUNK --> EMBED -->|"2. Store Vectors"| PG
+    CHAT -->|"3. Query Request"| API_CHAT
+    API_CHAT -->|"4. Check Cached Query"| REDIS_CACHE
+    REDIS_CACHE -.->|"Cache HIT (45ms)"| STREAMER
+    REDIS_CACHE -->|"Cache MISS"| EMBED
+    EMBED -->|"5. Cosine Distance Search"| PG
+    PG -->|"6. Top-K Context Chunks"| STREAMER
+    STREAMER -->|"7. Stream Tokens (TTFT < 350ms)"| CHAT
     CHAT --> CARDS
-    ANALYTICS -->|Fetch Live Metrics| API_STATS
+    ANALYTICS -->|"Fetch Live Metrics"| API_STATS
     API_STATS --> REDIS_CACHE
 ```
 
